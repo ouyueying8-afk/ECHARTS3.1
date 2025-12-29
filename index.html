@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小红书不婚不育笔记情绪分析</title>
+    <!-- 引入ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #FFFCFB;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        #chart-container {
+            width: 100%;
+            height: 700px;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 6px 25px rgba(255, 148, 168, 0.1);
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .title {
+            text-align: center;
+            color: #FF94A8;
+            margin-bottom: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body>
+    <h1 class="title">小红书不婚不育笔记情绪分析</h1>
+    
+    <div id="chart-container"></div>
+
+    <script>
+        // 等待DOM加载完成
+        document.addEventListener('DOMContentLoaded', function() {
+            var dom = document.getElementById('chart-container');
+            var myChart = echarts.init(dom, null, {
+                renderer: 'canvas',
+                useDirtyRect: false
+            });
+            
+            // 情绪数据
+            const emotionData = {
+                "环形图数据": {
+                    "类别": ["积极情感", "负面情感", "复杂情感"],
+                    "数值": [70179, 51642, 18606],
+                    "百分比": [49.98, 36.77, 13.25]
+                },
+                "细分情绪条形图数据": {
+                    "积极情感": {
+                        "情绪类型": ["赞扬", "喜爱", "快乐", "相信", "尊敬", "祝愿", "安心"],
+                        "情绪强度": [20686, 19058, 13464, 7613, 3494, 3368, 2496]
+                    },
+                    "负面情感": {
+                        "情绪类型": ["厌恶", "悲伤", "恐惧", "愤怒", "羞耻"],
+                        "情绪强度": [29883, 16335, 4358, 960, 106]
+                    },
+                    "复杂情感": {
+                        "情绪类型": ["贬责", "怀疑", "思念", "惊讶", "内疚", "妒忌"],
+                        "情绪强度": [10077, 4970, 1518, 1470, 559, 12]
+                    }
+                }
+            };
+
+            // 调整后的浅色方案，三类颜色区分更明显
+            const colorSchemes = {
+                "积极情感": {
+                    main: '#A6E8E7',  // 浅青色
+                    sub: ['#D0F2F1', '#E8F9F9']  // 更浅的青色
+                },
+                "负面情感": {
+                    main: '#FFB1C1',  // 浅粉色
+                    sub: ['#FFD0D9', '#FFE8EC']  // 更浅的粉色
+                },
+                "复杂情感": {
+                    main: '#FFEEDD',  // 浅米色/淡橙色
+                    sub: ['#FFF5E8', '#FFFAF5']  // 更浅的米色
+                }
+            };
+
+            // 准备数据
+            const innerData = emotionData.环形图数据.类别.map((category, index) => ({
+                value: emotionData.环形图数据.数值[index],
+                name: category,
+                itemStyle: {
+                    color: colorSchemes[category].main
+                }
+            }));
+
+            // 准备外环数据
+            const outerData = [];
+            emotionData.环形图数据.类别.forEach((category) => {
+                const subEmotions = emotionData.细分情绪条形图数据[category];
+                subEmotions.情绪类型.forEach((emotion, index) => {
+                    outerData.push({
+                        value: subEmotions.情绪强度[index],
+                        name: emotion,
+                        parent: category,
+                        itemStyle: {
+                            color: colorSchemes[category].sub[index % 2]
+                        }
+                    });
+                });
+            });
+
+            var option;
+
+            option = {
+                tooltip: {
+                    trigger: 'item',
+                    formatter: function(params) {
+                        if (params.data.parent) {
+                            return `${params.data.parent} - ${params.name}<br/>强度: ${params.value.toLocaleString()}`;
+                        } else {
+                            return `${params.name}<br/>总分: ${params.value.toLocaleString()}<br/>占比: ${params.percent}%`;
+                        }
+                    },
+                    backgroundColor: '#FFFCFB',
+                    borderColor: '#FFB1C1',
+                    borderWidth: 1,
+                    textStyle: {
+                        color: '#555'
+                    }
+                },
+                legend: {
+                    orient: 'vertical',
+                    left: 'left',
+                    top: 'center',
+                    data: emotionData.环形图数据.类别,
+                    textStyle: {
+                        fontSize: 14,
+                        fontWeight: 'bold',
+                        color: '#555'
+                    },
+                    formatter: function(name) {
+                        const index = emotionData.环形图数据.类别.indexOf(name);
+                        const percentage = emotionData.环形图数据.百分比[index];
+                        return `${name}: ${percentage}%`;
+                    },
+                    itemGap: 15
+                },
+                series: [
+                    {
+                        name: '情绪大类',
+                        type: 'pie',
+                        selectedMode: 'single',
+                        radius: [0, '30%'],
+                        label: {
+                            position: 'inner',
+                            fontSize: 12,
+                            fontWeight: 'bold',
+                            formatter: '{b}\n{d}%',
+                            color: '#444'
+                        },
+                        labelLine: {
+                            show: false
+                        },
+                        data: innerData,
+                        emphasis: {
+                            itemStyle: {
+                                shadowBlur: 12,
+                                shadowOffsetX: 0,
+                                shadowColor: 'rgba(0, 0, 0, 0.1)'
+                            }
+                        }
+                    },
+                    {
+                        name: '细分情绪',
+                        type: 'pie',
+                        radius: ['45%', '65%'],
+                        avoidLabelOverlap: false,
+                        label: {
+                            show: true,
+                            position: 'outside',
+                            formatter: function(params) {
+                                return `${params.name}\n${params.value.toLocaleString()}`;
+                            },
+                            fontSize: 11,
+                            fontWeight: 'normal',
+                            color: '#666'
+                        },
+                        labelLine: {
+                            show: true,
+                            length: 15,
+                            length2: 0,
+                            lineStyle: {
+                                color: '#DDD',
+                                width: 1
+                            }
+                        },
+                        data: outerData,
+                        emphasis: {
+                            label: {
+                                show: true,
+                                fontSize: 12,
+                                fontWeight: 'bold',
+                                color: '#333'
+                            },
+                            itemStyle: {
+                                shadowBlur: 12,
+                                shadowOffsetX: 0,
+                                shadowColor: 'rgba(0, 0, 0, 0.1)'
+                            }
+                        }
+                    }
+                ],
+                graphic: [
+                    {
+                        type: 'text',
+                        left: 'center',
+                        top: 'middle',
+                        style: {
+                            text: '情绪分布',
+                            fontSize: 18,
+                            fontWeight: 'bold',
+                            fill: '#888'
+                        }
+                    }
+                ]
+            };
+
+            if (option && typeof option === 'object') {
+                myChart.setOption(option);
+            }
+
+            // 添加窗口大小变化时的响应式调整
+            window.addEventListener('resize', function() {
+                myChart.resize();
+            });
+        });
+    </script>
+</body>
+</html>
